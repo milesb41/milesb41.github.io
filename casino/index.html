@@ -2,45 +2,96 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>GemRush | Casino</title>
+    <title>GemRush | Vault Access</title>
     <style>
-        body { background: #0f0f10; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: #1c1c1e; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid #333; width: 300px; }
-        .btn { background: #5865f2; color: white; padding: 15px 25px; border-radius: 10px; text-decoration: none; display: inline-block; font-weight: bold; margin-top: 20px; }
+        :root { --bg: #0f0f10; --card: #1c1c1e; --accent: #5865f2; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid #333; width: 320px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        h2 { letter-spacing: 2px; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #333; background: #2c2c2e; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        button:hover { background: #4752c4; }
         #dashboard { display: none; }
+        .balance { font-size: 3rem; font-weight: bold; color: #00d2ff; margin: 20px 0; }
+        .error { color: #ff453a; font-size: 0.8rem; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-    <div id="auth-section">
-        <h1>GEMRUSH</h1>
-        <a href="https://gemrush-api.onrender.com/login" class="btn" id="login-link">Login with Discord</a>
+    <div id="auth-section" class="card">
+        <h2>GEMRUSH</h2>
+        <p style="color: #8e8e93; font-size: 0.85rem; margin-bottom: 25px;">Use `/createaccount` in Discord</p>
+        
+        <input type="text" id="userInput" placeholder="Username">
+        <input type="password" id="passInput" placeholder="Password">
+        <button onclick="performLogin()" id="loginBtn">Login to Vault</button>
+        <p id="errorMsg" class="error">Invalid username or password</p>
     </div>
 
-    <div id="dashboard">
-        <div class="card">
-            <h2 id="user-display">Welcome</h2>
-            <div id="balance" style="font-size: 2.5rem; color: #00d2ff;">💎0</div>
-            <p id="logout" style="color: red; cursor: pointer; margin-top: 20px;" onclick="logout()">Sign Out</p>
+    <div id="dashboard" class="card">
+        <h3 id="welcomeMsg" style="color: #8e8e93;">Welcome Back</h3>
+        <div id="balanceNum" class="balance">0</div>
+        <div style="display: flex; justify-content: space-around; font-size: 0.8rem; color: #32d74b;">
+            <div>PROFIT: <span id="profitNum">+0</span></div>
+            <div style="color: #ff9f0a;">WAGERED: <span id="wagerNum">0</span></div>
         </div>
+        <button onclick="logout()" style="background: transparent; border: 1px solid #444; margin-top: 30px;">Sign Out</button>
     </div>
 
     <script>
-        async function init() {
-            const userId = localStorage.getItem('discord_id');
-            if (userId) {
-                document.getElementById('auth-section').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block';
-                document.getElementById('user-display').innerText = localStorage.getItem('discord_user');
-                
-                const res = await fetch(`https://gemrush-api.onrender.com/balance/${userId}`);
-                const data = await res.json();
-                document.getElementById('balance').innerText = `💎${data.balance.toLocaleString()}`;
+        const API_URL = "https://gemrush-api.onrender.com";
+
+        async function performLogin() {
+            const username = document.getElementById('userInput').value;
+            const password = document.getElementById('passInput').value;
+            const btn = document.getElementById('loginBtn');
+            const error = document.getElementById('errorMsg');
+
+            btn.innerText = "Authenticating...";
+            error.style.display = "none";
+
+            try {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('gem_uid', data.user_id);
+                    localStorage.setItem('gem_name', data.username);
+                    loadDashboard();
+                } else {
+                    error.style.display = "block";
+                    btn.innerText = "Login to Vault";
+                }
+            } catch (err) {
+                btn.innerText = "API Offline";
             }
         }
 
+        async function loadDashboard() {
+            const uid = localStorage.getItem('gem_uid');
+            const name = localStorage.getItem('gem_name');
+            if (!uid) return;
+
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('welcomeMsg').innerText = `Welcome, ${name}`;
+
+            const res = await fetch(`${API_URL}/balance/${uid}`);
+            const data = await res.json();
+            
+            document.getElementById('balanceNum').innerText = `💎${data.balance.toLocaleString()}`;
+            document.getElementById('profitNum').innerText = `+${data.profit.toLocaleString()}`;
+            document.getElementById('wagerNum').innerText = data.wagered.toLocaleString();
+        }
+
         function logout() { localStorage.clear(); window.location.reload(); }
-        init();
+
+        // Auto-load if already logged in
+        if (localStorage.getItem('gem_uid')) loadDashboard();
     </script>
 </body>
 </html>
