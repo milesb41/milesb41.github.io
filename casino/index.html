@@ -6,35 +6,133 @@
     <title>GemRush | Casino Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0f0f10; --card: #1c1c1e; --accent: #5865f2; --green: #32d74b; --text-dim: #8e8e93; }
-        body { background: var(--bg); color: #ffffff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        #auth-section { text-align: center; }
-        .login-btn { background: var(--accent); color: white; border: none; padding: 16px 32px; font-weight: 600; border-radius: 12px; cursor: pointer; transition: 0.2s; }
-        .login-btn:hover { transform: translateY(-2px); background: #4752c4; }
-        #dashboard { display: none; }
-        .container { background: var(--card); border: 1px solid #3a3a3c; border-radius: 28px; padding: 40px; text-align: center; width: 340px; }
-        .balance { font-size: 3.5rem; font-weight: 800; color: #00d2ff; margin: 10px 0; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; border-top: 1px solid #2c2c2e; padding-top: 25px; }
-        .stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; }
+        :root {
+            --bg: #0f0f10;
+            --card: #1c1c1e;
+            --accent: #5865f2;
+            --green: #32d74b;
+            --text-dim: #8e8e93;
+            --orange: #ff9f0a;
+        }
+
+        body { 
+            background: var(--bg); 
+            color: #ffffff; 
+            font-family: 'Inter', sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+
+        /* LOGIN STATE */
+        #auth-section {
+            text-align: center;
+            display: block;
+        }
+
+        .login-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            background: #4752c4;
+        }
+
+        /* LOGGED IN STATE */
+        #dashboard {
+            display: none;
+        }
+
+        .container { 
+            background: var(--card); 
+            border: 1px solid #3a3a3c; 
+            border-radius: 28px; 
+            padding: 40px; 
+            text-align: center; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6); 
+            width: 340px; 
+        }
+
+        .user-badge {
+            background: #2c2c2e;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        h1 { font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 3px; margin: 0; }
+        
+        .balance { 
+            font-size: 3.5rem; 
+            font-weight: 800; 
+            color: #00d2ff; 
+            margin: 15px 0; 
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+            margin-top: 25px; 
+            border-top: 1px solid #2c2c2e; 
+            padding-top: 25px; 
+        }
+
+        .stat-label { font-size: 0.7rem; color: #636366; text-transform: uppercase; margin-bottom: 4px; }
         .stat-value { font-size: 1.1rem; font-weight: 600; color: var(--green); }
+
+        .sync-text { font-size: 0.75rem; color: #48484a; margin-top: 30px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 8px var(--green); }
+
         .logout { margin-top: 20px; color: #ff453a; font-size: 0.8rem; cursor: pointer; opacity: 0.6; }
+        .logout:hover { opacity: 1; }
     </style>
 </head>
 <body>
 
     <div id="auth-section">
-        <h2 style="margin-bottom: 20px;">GEMRUSH VAULT</h2>
-        <button class="login-btn" onclick="startLogin()">Login with Discord</button>
+        <h2 style="margin-bottom: 10px; font-weight: 800; letter-spacing: 2px;">GEMRUSH</h2>
+        <p style="color: var(--text-dim); margin-bottom: 30px;">Access your private vault</p>
+        <button class="login-btn" onclick="startLogin()">
+            Login with Discord
+        </button>
     </div>
 
     <div id="dashboard">
         <div class="container">
-            <div id="username" style="color:var(--text-dim); margin-bottom:10px;">Player</div>
-            <h1>Your Gems</h1>
+            <div class="user-badge" id="username">Player</div>
+            <h1>Current Balance</h1>
             <div id="balance" class="balance">0</div>
+            
             <div class="stats-grid">
-                <div class="stat-box"><div class="stat-label">Profit</div><div id="profit" class="stat-value">+0</div></div>
-                <div class="stat-box"><div class="stat-label">Wagered</div><div id="wagered" class="stat-value" style="color:#ff9f0a;">0</div></div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Profit</div>
+                    <div id="profit" class="stat-value">+0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Wagered</div>
+                    <div id="wagered" class="stat-value" style="color: var(--orange);">0</div>
+                </div>
+            </div>
+
+            <div class="sync-text">
+                <span class="dot"></span> Live Cloud Sync Active
             </div>
             <div class="logout" onclick="logout()">Sign Out</div>
         </div>
@@ -43,35 +141,46 @@
     <script>
         const API_URL = "https://gemrush-api.onrender.com";
 
-        async function startLogin() {
+        // 🚀 STEP 1: LOGIN
+        function startLogin() {
             const btn = document.querySelector('.login-btn');
-            btn.innerText = "Connecting...";
-            try {
-                const response = await fetch(`${API_URL}/login`);
-                const data = await response.json();
-                if (data.url) window.location.href = data.url;
-            } catch (err) { alert("API is waking up. Please wait 10 seconds."); btn.innerText = "Login with Discord"; }
+            btn.innerText = "Redirecting...";
+            // Go directly to the API's login route
+            window.location.href = `${API_URL}/login`;
         }
 
+        // 🚀 STEP 2: LOAD DATA
         async function loadStats() {
             const userId = localStorage.getItem('discord_id');
+            const username = localStorage.getItem('discord_user');
+            
             if (!userId) return;
 
+            // Flip visibility
             document.getElementById('auth-section').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-            document.getElementById('username').innerText = localStorage.getItem('discord_user') || "Player";
+            document.getElementById('username').innerText = `@${username}`;
 
             try {
-                const res = await fetch(`${API_URL}/balance/${userId}`);
-                const data = await res.json();
+                const response = await fetch(`${API_URL}/balance/${userId}`);
+                const data = await response.json();
+                
                 document.getElementById('balance').innerText = `💎${data.balance.toLocaleString()}`;
                 document.getElementById('profit').innerText = `+${data.profit.toLocaleString()}`;
                 document.getElementById('wagered').innerText = data.wagered.toLocaleString();
-            } catch (err) { console.log("Syncing..."); }
+            } catch (err) {
+                console.log("Cloud Syncing...");
+            }
         }
 
-        function logout() { localStorage.clear(); window.location.reload(); }
+        function logout() {
+            localStorage.clear();
+            window.location.reload();
+        }
+
+        // Initial check
         loadStats();
+        // Refresh every 5 seconds
         setInterval(loadStats, 5000);
     </script>
 </body>
