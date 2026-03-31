@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GemRush | Live Dashboard</title>
+    <style>
+        body { background: #0f0f10; color: #ffffff; font-family: 'Inter', -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: #1c1c1e; border: 1px solid #3a3a3c; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.6); width: 350px; transition: transform 0.3s ease; }
+        .container:hover { transform: translateY(-5px); }
+        h1 { font-size: 0.9rem; color: #8e8e93; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 5px; }
+        .balance { font-size: 3.5rem; font-weight: 800; color: #00d2ff; margin: 15px 0; font-variant-numeric: tabular-nums; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; border-top: 1px solid #2c2c2e; padding-top: 20px; }
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 0.7rem; color: #636366; text-transform: uppercase; }
+        .stat-value { font-size: 1.1rem; font-weight: 600; color: #32d74b; }
+        .status-dot { width: 8px; height: 8px; background: #32d74b; border-radius: 50%; display: inline-block; margin-right: 8px; box-shadow: 0 0 10px #32d74b; }
+        .sync-text { font-size: 0.75rem; color: #48484a; margin-top: 25px; display: flex; align-items: center; justify-content: center; }
+        #status-msg { margin-left: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Current Gems</h1>
+        <div id="balance" class="balance">0</div>
+        
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Total Profit</div>
+                <div id="profit" class="stat-value">+0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Wagered</div>
+                <div id="wagered" class="stat-value" style="color: #ff9f0a;">0</div>
+            </div>
+        </div>
+
+        <div class="sync-text">
+            <span class="status-dot" id="dot"></span> 
+            <span id="status-msg">Live Syncing with Discord</span>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://gemrush-api.onrender.com";
+        const USER_ID = "947951239847628902"; 
+
+        async function refreshStats() {
+            try {
+                const response = await fetch(`${API_URL}/balance/${USER_ID}`);
+                if (!response.ok) throw new Error("User not found");
+                const data = await response.json();
+                
+                // Update the UI
+                document.getElementById('balance').innerText = `💎${data.balance.toLocaleString()}`;
+                document.getElementById('profit').innerText = `+${data.profit.toLocaleString()}`;
+                document.getElementById('wagered').innerText = data.wagered.toLocaleString();
+                
+                // Reset status if successful
+                document.getElementById('dot').style.background = "#32d74b";
+                document.getElementById('status-msg').innerText = "Live Syncing with Discord";
+            } catch (err) {
+                console.log("Connecting to API...");
+                document.getElementById('dot').style.background = "#ff453a";
+                document.getElementById('status-msg').innerText = "Waking up API (Standby...)";
+            }
+        }
+
+        // Update every 3 seconds
+        refreshStats();
+        setInterval(refreshStats, 3000);
+    </script>
+</body>
+</html>
