@@ -38,60 +38,93 @@
         <button onclick="logout()" style="background: transparent; border: 1px solid #444; margin-top: 30px;">Sign Out</button>
     </div>
 
-    <script>
-        const API_URL = "https://gemrush-api.onrender.com";
+<script>
+    // 1. Point this to your actual Render URL
+    const API_URL = "https://gemrush-api.onrender.com";
 
-        async function performLogin() {
-            const username = document.getElementById('userInput').value;
-            const password = document.getElementById('passInput').value;
-            const btn = document.getElementById('loginBtn');
-            const error = document.getElementById('errorMsg');
+    async function performLogin() {
+        const username = document.getElementById('userInput').value;
+        const password = document.getElementById('passInput').value;
+        const btn = document.getElementById('loginBtn');
+        const error = document.getElementById('errorMsg');
 
-            btn.innerText = "Authenticating...";
-            error.style.display = "none";
-
-            try {
-                const res = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    localStorage.setItem('gem_uid', data.user_id);
-                    localStorage.setItem('gem_name', data.username);
-                    loadDashboard();
-                } else {
-                    error.style.display = "block";
-                    btn.innerText = "Login to Vault";
-                }
-            } catch (err) {
-                btn.innerText = "API Offline";
-            }
+        if (!username || !password) {
+            error.innerText = "Please enter both fields.";
+            error.style.display = "block";
+            return;
         }
 
-        async function loadDashboard() {
-            const uid = localStorage.getItem('gem_uid');
-            const name = localStorage.getItem('gem_name');
-            if (!uid) return;
+        btn.innerText = "Authenticating...";
+        btn.disabled = true;
+        error.style.display = "none";
 
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            document.getElementById('welcomeMsg').innerText = `Welcome, ${name}`;
+        try {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
 
+            const data = await res.json();
+
+            if (res.ok && data.status === "success") {
+                // ✅ Save the session
+                localStorage.setItem('gem_uid', data.user_id);
+                localStorage.setItem('gem_name', data.username);
+                
+                // ✅ Move to the next page (Dashboard)
+                loadDashboard();
+            } else {
+                error.innerText = data.detail || "Invalid Credentials";
+                error.style.display = "block";
+                btn.innerText = "Login to Vault";
+                btn.disabled = false;
+            }
+        } catch (err) {
+            console.error("Login Error:", err);
+            error.innerText = "API Offline - check Render logs";
+            error.style.display = "block";
+            btn.innerText = "Login to Vault";
+            btn.disabled = false;
+        }
+    }
+
+    async function loadDashboard() {
+        const uid = localStorage.getItem('gem_uid');
+        const name = localStorage.getItem('gem_name');
+        
+        if (!uid) return;
+
+        // Swap the views
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('welcomeMsg').innerText = `Welcome, ${name}`;
+
+        try {
+            // Fetch the same data the /balance command sees
             const res = await fetch(`${API_URL}/balance/${uid}`);
             const data = await res.json();
             
-            document.getElementById('balanceNum').innerText = `💎${data.balance.toLocaleString()}`;
-            document.getElementById('profitNum').innerText = `+${data.profit.toLocaleString()}`;
+            // Update the UI with commas for big numbers
+            document.getElementById('balanceNum').innerText = `💎 ${data.balance.toLocaleString()}`;
+            document.getElementById('profitNum').innerText = `${data.profit >= 0 ? '+' : ''}${data.profit.toLocaleString()}`;
             document.getElementById('wagerNum').innerText = data.wagered.toLocaleString();
+        } catch (err) {
+            console.error("Balance Fetch Error:", err);
         }
+    }
 
-        function logout() { localStorage.clear(); window.location.reload(); }
+    function logout() {
+        localStorage.clear();
+        window.location.reload();
+    }
 
-        // Auto-load if already logged in
-        if (localStorage.getItem('gem_uid')) loadDashboard();
-    </script>
+    // Auto-login if a session exists
+    window.onload = () => {
+        if (localStorage.getItem('gem_uid')) {
+            loadDashboard();
+        }
+    };
+</script>
 </body>
 </html>
