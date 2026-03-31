@@ -1,18 +1,37 @@
-<script>
-    // This page catches the 'code' from Discord and sends it to your API
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
+<!DOCTYPE html>
+<html>
+<body style="background: #0f0f10; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <div id="status">Connecting to Vault...</div>
 
-    async function handleLogin() {
-        const res = await fetch(`https://gemrush-api.onrender.com/callback?code=${code}`);
-        const data = await res.json();
-        
-        // Store the User ID in the browser's memory so they stay logged in
-        localStorage.setItem('discord_id', data.user_id);
-        
-        // Send them back to the main casino dashboard
-        window.location.href = "index.html";
-    }
-    handleLogin();
-</script>
-<body>Logging you in...</body>
+    <script>
+        const API_URL = "https://gemrush-api.onrender.com";
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+
+        async function handleCallback() {
+            if (!code) {
+                document.getElementById('status').innerText = "Login Failed. Redirecting...";
+                setTimeout(() => window.location.href = "index.html", 2000);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/callback?code=${code}`);
+                const data = await response.json();
+
+                if (data.user_id) {
+                    localStorage.setItem('discord_id', data.user_id);
+                    localStorage.setItem('discord_user', data.username);
+                    window.location.href = "index.html";
+                } else {
+                    throw new Error("No user data");
+                }
+            } catch (err) {
+                document.getElementById('status').innerText = "Session Error. Try again.";
+                setTimeout(() => window.location.href = "index.html", 2000);
+            }
+        }
+        handleCallback();
+    </script>
+</body>
+</html>
