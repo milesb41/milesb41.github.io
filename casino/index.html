@@ -7,33 +7,30 @@
     <style>
         :root { --bg: #0f0f10; --card: #1c1c1e; --accent: #5865f2; --success: #32d74b; --error: #ff453a; }
         body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 30px; border-radius: 24px; border: 1px solid #333; width: 350px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); margin: 20px; }
+        .card { background: var(--card); padding: 30px; border-radius: 24px; border: 1px solid #333; width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); margin: 20px; }
         h2 { letter-spacing: 2px; margin-bottom: 5px; color: var(--accent); }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #333; background: #2c2c2e; color: white; box-sizing: border-box; outline: none; }
-        button { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-        button:hover { opacity: 0.8; transform: scale(1.02); }
-        button:disabled { background: #444; cursor: not-allowed; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #333; background: #2c2c2e; color: white; box-sizing: border-box; outline: none; }
+        .btn { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn:hover { opacity: 0.8; transform: scale(1.02); }
         .balance { font-size: 2.5rem; font-weight: bold; color: #00d2ff; margin: 15px 0; }
         .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 15px 0; }
-        .tile { aspect-ratio: 1; background: #2c2c2e; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid #444; transition: 0.2s; }
-        .tile:hover { background: #3a3a3c; }
-        .tile.revealed { cursor: default; border: none; }
+        .tile { aspect-ratio: 1; background: #2c2c2e; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid #444; }
         .error { color: var(--error); font-size: 0.8rem; margin-top: 10px; display: none; }
+        #game-menu, #mines-game { display: none; }
     </style>
 </head>
 <body>
 
     <div id="auth-section" class="card">
         <h2>GEMRUSH</h2>
-        <p style="color: #8e8e93; font-size: 0.85rem; margin-bottom: 25px;">Use `/createaccount` in Discord</p>
         <input type="text" id="userInput" placeholder="Username">
         <input type="password" id="passInput" placeholder="Password">
-        <button onclick="performLogin()" id="loginBtn">Login to Vault</button>
+        <button class="btn" onclick="performLogin()" id="loginBtn">Login to Vault</button>
         <p id="errorMsg" class="error"></p>
     </div>
 
-    <div id="dashboard" class="card" style="display: none;">
-        <h3 id="welcomeMsg" style="color: #8e8e93; margin: 0;">Welcome Back</h3>
+    <div id="game-menu" class="card">
+        <h3 id="welcomeMsg" style="color: #8e8e93;">Welcome Back</h3>
         <div id="balanceNum" class="balance">💎 0</div>
         
         <div style="display: flex; justify-content: space-around; font-size: 0.75rem; margin-bottom: 20px;">
@@ -41,73 +38,75 @@
             <div style="color: #ff9f0a;">WAGERED: <span id="wagerNum">0</span></div>
         </div>
 
-        <div id="mines-ui">
-            <div id="minesGrid" class="grid"></div>
-            <input type="number" id="betAmount" placeholder="Bet Amount" min="1">
-            <select id="mineCount">
-                <option value="1">1 Mine</option>
-                <option value="3" selected>3 Mines</option>
-                <option value="5">5 Mines</option>
-                <option value="10">10 Mines</option>
-                <option value="24">24 Mines</option>
-            </select>
-            <button id="gameActionBtn" onclick="startGame()" style="background: var(--success);">Start Game</button>
-        </div>
+        <button class="btn" onclick="showMines()" style="background: #a855f7; margin-bottom: 10px;">💣 Play Mines!</button>
+        <button class="btn" style="background: #334155; cursor: not-allowed; opacity: 0.5;">🗼 Tower (Coming Soon)</button>
+        
+        <button onclick="logout()" style="background: transparent; border: 1px solid #444; width:100%; color:white; padding:10px; border-radius:10px; margin-top: 20px;">Sign Out</button>
+    </div>
 
-        <button onclick="logout()" style="background: transparent; border: 1px solid #444; margin-top: 20px; font-size: 0.8rem;">Sign Out</button>
+    <div id="mines-game" class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <button onclick="backToMenu()" style="background:none; border:none; color:var(--accent); cursor:pointer;">← Back</button>
+            <h3 style="margin:0;">MINES</h3>
+        </div>
+        
+        <div id="minesGrid" class="grid"></div>
+
+        <input type="number" id="betAmount" placeholder="Bet Amount">
+        <input type="number" id="mineCount" placeholder="Number of Bombs (1-24)" min="1" max="24">
+        
+        <button id="gameActionBtn" class="btn" onclick="startGame()" style="background: var(--success);">Start Game</button>
     </div>
 
 <script>
-    const API_URL = "https://gemrush-api.onrender.com"; // UPDATE THIS TO YOUR ACTUAL URL
+    const API_URL = "https://gemrush-api.onrender.com"; // UPDATE THIS
     let isGameActive = false;
 
-    // --- AUTH LOGIC ---
     async function performLogin() {
         const username = document.getElementById('userInput').value;
         const password = document.getElementById('passInput').value;
-        const error = document.getElementById('errorMsg');
-
-        try {
-            const res = await fetch(`${API_URL}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                localStorage.setItem('gem_uid', data.user_id);
-                localStorage.setItem('gem_name', data.username);
-                loadDashboard();
-            } else {
-                error.innerText = data.detail || "Invalid Credentials";
-                error.style.display = "block";
-            }
-        } catch (err) {
-            error.innerText = "API Offline";
-            error.style.display = "block";
+        const res = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('gem_uid', data.user_id);
+            localStorage.setItem('gem_name', data.username);
+            loadUI();
         }
     }
 
-    async function loadDashboard() {
+    function loadUI() {
         const uid = localStorage.getItem('gem_uid');
         if (!uid) return;
-
         document.getElementById('auth-section').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        document.getElementById('welcomeMsg').innerText = `Welcome, ${localStorage.getItem('gem_name')}`;
+        document.getElementById('game-menu').style.display = 'block';
+        document.getElementById('mines-game').style.display = 'none';
+        updateStats();
+    }
 
+    async function updateStats() {
+        const uid = localStorage.getItem('gem_uid');
         const res = await fetch(`${API_URL}/balance/${uid}`);
         const data = await res.json();
-        
         document.getElementById('balanceNum').innerText = `💎 ${data.balance.toLocaleString()}`;
         document.getElementById('profitNum').innerText = `${data.profit >= 0 ? '+' : ''}${data.profit.toLocaleString()}`;
         document.getElementById('wagerNum').innerText = data.wagered.toLocaleString();
-        
-        if (!isGameActive) createBlankGrid();
     }
 
-    // --- MINES LOGIC ---
+    function showMines() {
+        document.getElementById('game-menu').style.display = 'none';
+        document.getElementById('mines-game').style.display = 'block';
+        createBlankGrid();
+    }
+
+    function backToMenu() {
+        if (isGameActive) return alert("Finish your game first!");
+        loadUI();
+    }
+
     function createBlankGrid() {
         const grid = document.getElementById('minesGrid');
         grid.innerHTML = '';
@@ -132,33 +131,27 @@
             body: JSON.stringify({ user_id: uid, bet: parseInt(bet), mines: parseInt(mines) })
         });
 
-        const data = await res.json();
-        if (!res.ok) return alert(data.detail);
-
-        isGameActive = true;
-        createBlankGrid();
-        loadDashboard(); // Refresh balance
-        
-        const btn = document.getElementById('gameActionBtn');
-        btn.innerText = "Cashout (1.00x)";
-        btn.style.background = "#ff9f0a";
-        btn.onclick = cashout;
+        if (res.ok) {
+            isGameActive = true;
+            createBlankGrid();
+            updateStats();
+            const btn = document.getElementById('gameActionBtn');
+            btn.innerText = "Cashout (1.00x)";
+            btn.style.background = "#ff9f0a";
+            btn.onclick = cashout;
+        }
     }
 
     async function revealTile(idx, element) {
-        if (!isGameActive || element.classList.contains('revealed')) return;
-        const uid = localStorage.getItem('gem_uid');
-
+        if (!isGameActive || element.innerText !== '?') return;
         const res = await fetch(`${API_URL}/reveal_tile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: uid, tile_idx: idx })
+            body: JSON.stringify({ user_id: localStorage.getItem('gem_uid'), tile_idx: idx })
         });
-
         const data = await res.json();
         if (data.result === "gem") {
             element.innerText = "💎";
-            element.classList.add('revealed');
             element.style.background = "rgba(50, 215, 75, 0.2)";
             document.getElementById('gameActionBtn').innerText = `Cashout (${data.multiplier}x)`;
         } else {
@@ -167,14 +160,13 @@
     }
 
     async function cashout() {
-        const uid = localStorage.getItem('gem_uid');
         const res = await fetch(`${API_URL}/cashout_web`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: uid })
+            body: JSON.stringify({ user_id: localStorage.getItem('gem_uid') })
         });
         const data = await res.json();
-        alert(`Cashed out for 💎 ${data.win}!`);
+        alert(`Won ${data.win}!`);
         endGame(true, data.grid);
     }
 
@@ -185,16 +177,15 @@
             tile.innerText = type === "gem" ? "💎" : "💣";
             if (type === "bomb") tile.style.background = (i === hitIdx) ? "rgba(255, 69, 58, 0.5)" : "rgba(255, 69, 58, 0.1)";
         });
-        
         const btn = document.getElementById('gameActionBtn');
         btn.innerText = "Start Game";
         btn.style.background = "var(--success)";
         btn.onclick = startGame;
-        loadDashboard();
+        updateStats();
     }
 
     function logout() { localStorage.clear(); window.location.reload(); }
-    window.onload = () => { if (localStorage.getItem('gem_uid')) loadDashboard(); };
+    window.onload = () => { if (localStorage.getItem('gem_uid')) loadUI(); };
 </script>
 </body>
 </html>
