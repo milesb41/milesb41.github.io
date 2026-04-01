@@ -2,18 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GemRush | Vault Access</title>
     <style>
-        :root { --bg: #0f0f10; --card: #1c1c1e; --accent: #5865f2; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid #333; width: 320px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-        h2 { letter-spacing: 2px; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #333; background: #2c2c2e; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        button:hover { background: #4752c4; }
-        #dashboard { display: none; }
-        .balance { font-size: 3rem; font-weight: bold; color: #00d2ff; margin: 20px 0; }
-        .error { color: #ff453a; font-size: 0.8rem; margin-top: 10px; display: none; }
+        :root { --bg: #0f0f10; --card: #1c1c1e; --accent: #5865f2; --success: #32d74b; --error: #ff453a; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 30px; border-radius: 24px; border: 1px solid #333; width: 350px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); margin: 20px; }
+        h2 { letter-spacing: 2px; margin-bottom: 5px; color: var(--accent); }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #333; background: #2c2c2e; color: white; box-sizing: border-box; outline: none; }
+        button { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        button:hover { opacity: 0.8; transform: scale(1.02); }
+        button:disabled { background: #444; cursor: not-allowed; }
+        .balance { font-size: 2.5rem; font-weight: bold; color: #00d2ff; margin: 15px 0; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 15px 0; }
+        .tile { aspect-ratio: 1; background: #2c2c2e; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid #444; transition: 0.2s; }
+        .tile:hover { background: #3a3a3c; }
+        .tile.revealed { cursor: default; border: none; }
+        .error { color: var(--error); font-size: 0.8rem; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -21,42 +26,46 @@
     <div id="auth-section" class="card">
         <h2>GEMRUSH</h2>
         <p style="color: #8e8e93; font-size: 0.85rem; margin-bottom: 25px;">Use `/createaccount` in Discord</p>
-        
         <input type="text" id="userInput" placeholder="Username">
         <input type="password" id="passInput" placeholder="Password">
         <button onclick="performLogin()" id="loginBtn">Login to Vault</button>
-        <p id="errorMsg" class="error">Invalid username or password</p>
+        <p id="errorMsg" class="error"></p>
     </div>
 
-    <div id="dashboard" class="card">
-        <h3 id="welcomeMsg" style="color: #8e8e93;">Welcome Back</h3>
-        <div id="balanceNum" class="balance">0</div>
-        <div style="display: flex; justify-content: space-around; font-size: 0.8rem; color: #32d74b;">
-            <div>PROFIT: <span id="profitNum">+0</span></div>
+    <div id="dashboard" class="card" style="display: none;">
+        <h3 id="welcomeMsg" style="color: #8e8e93; margin: 0;">Welcome Back</h3>
+        <div id="balanceNum" class="balance">💎 0</div>
+        
+        <div style="display: flex; justify-content: space-around; font-size: 0.75rem; margin-bottom: 20px;">
+            <div style="color: var(--success);">PROFIT: <span id="profitNum">+0</span></div>
             <div style="color: #ff9f0a;">WAGERED: <span id="wagerNum">0</span></div>
         </div>
-        <button onclick="logout()" style="background: transparent; border: 1px solid #444; margin-top: 30px;">Sign Out</button>
+
+        <div id="mines-ui">
+            <div id="minesGrid" class="grid"></div>
+            <input type="number" id="betAmount" placeholder="Bet Amount" min="1">
+            <select id="mineCount">
+                <option value="1">1 Mine</option>
+                <option value="3" selected>3 Mines</option>
+                <option value="5">5 Mines</option>
+                <option value="10">10 Mines</option>
+                <option value="24">24 Mines</option>
+            </select>
+            <button id="gameActionBtn" onclick="startGame()" style="background: var(--success);">Start Game</button>
+        </div>
+
+        <button onclick="logout()" style="background: transparent; border: 1px solid #444; margin-top: 20px; font-size: 0.8rem;">Sign Out</button>
     </div>
 
 <script>
-    // 1. Point this to your actual Render URL
-    const API_URL = "https://gemrush-api.onrender.com";
+    const API_URL = "https://gemrush-api.onrender.com"; // UPDATE THIS TO YOUR ACTUAL URL
+    let isGameActive = false;
 
+    // --- AUTH LOGIC ---
     async function performLogin() {
         const username = document.getElementById('userInput').value;
         const password = document.getElementById('passInput').value;
-        const btn = document.getElementById('loginBtn');
         const error = document.getElementById('errorMsg');
-
-        if (!username || !password) {
-            error.innerText = "Please enter both fields.";
-            error.style.display = "block";
-            return;
-        }
-
-        btn.innerText = "Authenticating...";
-        btn.disabled = true;
-        error.style.display = "none";
 
         try {
             const res = await fetch(`${API_URL}/login`, {
@@ -64,67 +73,128 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
-
             const data = await res.json();
 
-            if (res.ok && data.status === "success") {
-                // ✅ Save the session
+            if (res.ok) {
                 localStorage.setItem('gem_uid', data.user_id);
                 localStorage.setItem('gem_name', data.username);
-                
-                // ✅ Move to the next page (Dashboard)
                 loadDashboard();
             } else {
                 error.innerText = data.detail || "Invalid Credentials";
                 error.style.display = "block";
-                btn.innerText = "Login to Vault";
-                btn.disabled = false;
             }
         } catch (err) {
-            console.error("Login Error:", err);
-            error.innerText = "API Offline - check Render logs";
+            error.innerText = "API Offline";
             error.style.display = "block";
-            btn.innerText = "Login to Vault";
-            btn.disabled = false;
         }
     }
 
     async function loadDashboard() {
         const uid = localStorage.getItem('gem_uid');
-        const name = localStorage.getItem('gem_name');
-        
         if (!uid) return;
 
-        // Swap the views
         document.getElementById('auth-section').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
-        document.getElementById('welcomeMsg').innerText = `Welcome, ${name}`;
+        document.getElementById('welcomeMsg').innerText = `Welcome, ${localStorage.getItem('gem_name')}`;
 
-        try {
-            // Fetch the same data the /balance command sees
-            const res = await fetch(`${API_URL}/balance/${uid}`);
-            const data = await res.json();
-            
-            // Update the UI with commas for big numbers
-            document.getElementById('balanceNum').innerText = `💎 ${data.balance.toLocaleString()}`;
-            document.getElementById('profitNum').innerText = `${data.profit >= 0 ? '+' : ''}${data.profit.toLocaleString()}`;
-            document.getElementById('wagerNum').innerText = data.wagered.toLocaleString();
-        } catch (err) {
-            console.error("Balance Fetch Error:", err);
+        const res = await fetch(`${API_URL}/balance/${uid}`);
+        const data = await res.json();
+        
+        document.getElementById('balanceNum').innerText = `💎 ${data.balance.toLocaleString()}`;
+        document.getElementById('profitNum').innerText = `${data.profit >= 0 ? '+' : ''}${data.profit.toLocaleString()}`;
+        document.getElementById('wagerNum').innerText = data.wagered.toLocaleString();
+        
+        if (!isGameActive) createBlankGrid();
+    }
+
+    // --- MINES LOGIC ---
+    function createBlankGrid() {
+        const grid = document.getElementById('minesGrid');
+        grid.innerHTML = '';
+        for (let i = 0; i < 25; i++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.innerText = '?';
+            tile.onclick = () => revealTile(i, tile);
+            tile.id = `tile-${i}`;
+            grid.appendChild(tile);
         }
     }
 
-    function logout() {
-        localStorage.clear();
-        window.location.reload();
+    async function startGame() {
+        const uid = localStorage.getItem('gem_uid');
+        const bet = document.getElementById('betAmount').value;
+        const mines = document.getElementById('mineCount').value;
+
+        const res = await fetch(`${API_URL}/start_mines`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: uid, bet: parseInt(bet), mines: parseInt(mines) })
+        });
+
+        const data = await res.json();
+        if (!res.ok) return alert(data.detail);
+
+        isGameActive = true;
+        createBlankGrid();
+        loadDashboard(); // Refresh balance
+        
+        const btn = document.getElementById('gameActionBtn');
+        btn.innerText = "Cashout (1.00x)";
+        btn.style.background = "#ff9f0a";
+        btn.onclick = cashout;
     }
 
-    // Auto-login if a session exists
-    window.onload = () => {
-        if (localStorage.getItem('gem_uid')) {
-            loadDashboard();
+    async function revealTile(idx, element) {
+        if (!isGameActive || element.classList.contains('revealed')) return;
+        const uid = localStorage.getItem('gem_uid');
+
+        const res = await fetch(`${API_URL}/reveal_tile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: uid, tile_idx: idx })
+        });
+
+        const data = await res.json();
+        if (data.result === "gem") {
+            element.innerText = "💎";
+            element.classList.add('revealed');
+            element.style.background = "rgba(50, 215, 75, 0.2)";
+            document.getElementById('gameActionBtn').innerText = `Cashout (${data.multiplier}x)`;
+        } else {
+            endGame(false, data.grid, idx);
         }
-    };
+    }
+
+    async function cashout() {
+        const uid = localStorage.getItem('gem_uid');
+        const res = await fetch(`${API_URL}/cashout_web`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: uid })
+        });
+        const data = await res.json();
+        alert(`Cashed out for 💎 ${data.win}!`);
+        endGame(true, data.grid);
+    }
+
+    function endGame(win, gridData, hitIdx = null) {
+        isGameActive = false;
+        gridData.forEach((type, i) => {
+            const tile = document.getElementById(`tile-${i}`);
+            tile.innerText = type === "gem" ? "💎" : "💣";
+            if (type === "bomb") tile.style.background = (i === hitIdx) ? "rgba(255, 69, 58, 0.5)" : "rgba(255, 69, 58, 0.1)";
+        });
+        
+        const btn = document.getElementById('gameActionBtn');
+        btn.innerText = "Start Game";
+        btn.style.background = "var(--success)";
+        btn.onclick = startGame;
+        loadDashboard();
+    }
+
+    function logout() { localStorage.clear(); window.location.reload(); }
+    window.onload = () => { if (localStorage.getItem('gem_uid')) loadDashboard(); };
 </script>
 </body>
 </html>
