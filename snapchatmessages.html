@@ -7,33 +7,44 @@
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f0f0; }
         input { padding: 12px; font-size: 16px; margin-bottom: 10px; width: 80%; max-width: 400px; border: 1px solid #ccc; border-radius: 5px; }
+        .delay-input { width: 80px; }
         button { padding: 12px 24px; font-size: 16px; background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
     <h2>Send Message to PC</h2>
     <input type="text" id="messageInput" placeholder="Type your message here...">
+    
+    <div>
+        <label for="delayInput">Delay (seconds): </label>
+        <input type="number" id="delayInput" class="delay-input" value="0" min="0">
+    </div>
+    
     <button onclick="sendMessage()">Send Message</button>
 
     <script>
-        // REPLACE THE URL BELOW with your actual Firebase URL
-// Make sure this exact string is in your fetch call
-const DATABASE_URL = "https://snap-d7fd4-default-rtdb.firebaseio.com/messages.json";
+        const DATABASE_URL = "https://snap-d7fd4-default-rtdb.firebaseio.com/messages.json";
 
         async function sendMessage() {
             const message = document.getElementById('messageInput').value;
+            const delay = document.getElementById('delayInput').value;
+            
             if (!message) return alert("Please type something!");
 
             try {
                 const response = await fetch(DATABASE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: message, timestamp: Date.now() })
+                    body: JSON.stringify({ 
+                        text: message, 
+                        delay: parseInt(delay) || 0,
+                        timestamp: Date.now() 
+                    })
                 });
 
                 if (response.ok) {
                     document.getElementById('messageInput').value = '';
-                    alert("Message sent!");
+                    alert("Message queued with " + delay + "s delay!");
                 }
             } catch (error) {
                 console.error("Error:", error);
