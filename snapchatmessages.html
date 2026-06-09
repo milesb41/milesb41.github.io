@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Sender</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f0f0; }
+        input { padding: 12px; font-size: 16px; margin-bottom: 10px; width: 80%; max-width: 400px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 12px 24px; font-size: 16px; background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h2>Send Message to PC</h2>
+    <input type="text" id="messageInput" placeholder="Type your message here...">
+    <button onclick="sendMessage()">Send Message</button>
+
+    <script>
+        // REPLACE THE URL BELOW with your actual Firebase URL
+        const DATABASE_URL = "https://YOUR-PROJECT-ID.firebaseio.com/messages.json";
+
+        async function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            if (!message) return alert("Please type something!");
+
+            try {
+                const response = await fetch(DATABASE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: message, timestamp: Date.now() })
+                });
+
+                if (response.ok) {
+                    document.getElementById('messageInput').value = '';
+                    alert("Message sent!");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+    </script>
+</body>
+</html>
